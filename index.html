@@ -3703,6 +3703,23 @@ init();
   #recurring .recurring-list-card .icon-btn svg{width:11px;height:11px;}
 }
 </style>
+
+<style id="clean-bottom-nav-background">
+/* Houd de ruimte onder de zwevende navigatiebalk rustig en vrij van doorschijnende tekst. */
+@media (max-width:700px){
+  body::after{
+    content:"";
+    position:fixed;
+    left:0;right:0;bottom:0;
+    height:90px;
+    background:var(--bg, #f5f7fb);
+    z-index:9998;
+    pointer-events:none;
+  }
+  .bottom-nav{z-index:9999 !important;}
+}
+</style>
+
 </body>
 
 <style id="dashboard-revolut-subaccount-transactions">
