@@ -1,0 +1,1 @@
+Budget Planner met horizontaal scrollbare mobiele navigatie. Alle tabbladen staan naast elkaar; veeg naar links/rechts om ze te zien. Geen Meer-knop en geen blauwe plusknop. Upload index.html, manifest.json en de map icons naar de hoofdmap van je GitHub Pages-project. Maak eerst een backup van je huidige versie.
