@@ -1793,12 +1793,8 @@ const dpCosts=dealplugEntries.reduce((s,e)=>{
 },0);
 // Huidige stand = zelfde berekening als de DealPlugNL-tab: inkoopkosten van verkopen
 // worden van ABN Amro afgeboekt en tellen dus niet mee in de DealPlugNL-stand.
-const dpCashCosts=dealplugEntries.reduce((s,e)=>{
-  if(e.dealplugSale) return s;
-  if(e.kind==="expense"||e.kind==="cost"||e.kind==="kosten") return s+Number(e.amount||0);
-  return s;
-},0);
-const dpBalance=Number(data.dealplug.opening)+dpIncome-dpCashCosts;
+const dpCashMovement=dealplugEntries.reduce((s,e)=>s+dealplugEntryCashEffect(e),0);
+const dpBalance=Number(data.dealplug.opening)+dpCashMovement;
 const dashboardCryptoEntries=Array.isArray(data.cryptoEntries)?data.cryptoEntries:[];
 const dashboardCryptoInvested=dashboardCryptoEntries.filter(e=>(e.assetType||"crypto")==="crypto"&&e.type==="in").reduce((s,e)=>s+Number(e.amount||0),0);
 const dashboardCryptoCashouts=dashboardCryptoEntries.filter(e=>(e.assetType||"crypto")==="crypto"&&e.type==="out").reduce((s,e)=>s+Number(e.amount||0),0);
@@ -2685,14 +2681,23 @@ data.transactions=data.transactions.filter(x=>x.id!==tid);saveAndRender();
 
 let selectedSnapshotMonth="";
 
+// DealPlugNL-saldo: verkoopbedragen komen volledig binnen op Revolut-DP.
+// Inkoopkosten van een verkoop worden als gekoppelde uitgave op ABN geboekt
+// (data.transactions) en mogen daarom NOOIT nogmaals van het DP-saldo af.
+// Alleen losse DealPlugNL-kosten verminderen het DP-saldo.
+function dealplugEntryCashEffect(entry){
+  if(!entry) return 0;
+  const amount=Number(entry.amount||0);
+  if(!Number.isFinite(amount)) return 0;
+  if(entry.dealplugSale) return amount; // alleen de verkoopprijs; entry.cost is ABN-kosten
+  if(entry.kind==="income") return amount;
+  if(entry.kind==="expense"||entry.kind==="cost"||entry.kind==="kosten") return -amount;
+  return 0;
+}
 function dealplugNetForMonth(month){
   const entries=Array.isArray(data.dealplug?.entries)?data.dealplug.entries:[];
-  return entries.filter(e=>monthKey(e.date)===month).reduce((sum,e)=>{
-    const amount=Number(e.amount||0);
-    if(e.kind==="income") return sum+amount;
-    if(e.kind==="expense"||e.kind==="cost"||e.kind==="kosten") return sum-amount;
-    return sum;
-  },0);
+  return entries.filter(e=>monthKey(e.date)===month)
+    .reduce((sum,e)=>sum+dealplugEntryCashEffect(e),0);
 }
 function dealplugBalanceForMonth(month,snapshot){
   return Number(snapshot?.revolutSubaccounts?.dealplug||0)+dealplugNetForMonth(month);
@@ -3311,12 +3316,8 @@ const costs=entries.reduce((s,e)=>{
   if(e.kind==="expense"||e.kind==="cost"||e.kind==="kosten") return s+Number(e.amount||0);
   return s;
 },0);
-const cashCosts=entries.reduce((s,e)=>{
-  if(e.dealplugSale) return s;
-  if(e.kind==="expense"||e.kind==="cost"||e.kind==="kosten") return s+Number(e.amount||0);
-  return s;
-},0);
-const balance=Number(data.dealplug.opening)+income-cashCosts;
+const cashMovement=entries.reduce((s,e)=>s+dealplugEntryCashEffect(e),0);
+const balance=Number(data.dealplug.opening)+cashMovement;
 $("dealplug").innerHTML=`
 <div class="topbar"><div><h1>DealPlugNL</h1><div class="subtitle">Inkomsten en kosten van je abonnementen — automatisch gekoppeld aan Revolut · DealPlugNL</div></div></div>
 <div class="cards"><div class="card"><div class="stat-label"><i data-lucide="wallet"></i>Beginstand</div><div class="stat-value">${protectedEuro(data.dealplug.opening)}</div></div>
